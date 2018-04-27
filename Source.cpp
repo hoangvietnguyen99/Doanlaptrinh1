@@ -41,44 +41,54 @@ void laySo(FILE* file, int &a)
 	if (temp == L'"')
 	{
 		fwscanf_s(file, L"%d", &a);
-		fseek(file, 2L, SEEK_CUR);
+		fseek(file, 1, SEEK_CUR);
 	}
 	else
 	{
-		fseek(file, -1L, SEEK_CUR);
+		fseek(file, -1, SEEK_CUR);
 		fwscanf_s(file, L"%d", &a);
-		fseek(file, 1L, SEEK_CUR);
+		fseek(file, 1, SEEK_CUR);
 	}
 }
 
-void getHobby(FILE* file, wchar_t a[10][100])
+void getHobby(FILE* file, wchar_t a[10][100], int &soST)
 {
 	wchar_t temp = fgetwc(file);
+	soST = 0;
 	int i = 0;
-	int j = 0;
 	while (1)
 	{
-		if (temp != L'"')
+		if (temp != L'"'&&temp != L'\n'&&temp != L';'&&temp != L'.'&&temp != WEOF)
 		{
-			a[i][j] = temp;
-			j++;
+			a[soST][i] = temp;
+			i++;
 			temp = fgetwc(file);
 		}
-		if (temp == L';' || temp == L'.')
+		else if (temp == L';')
 		{
-			a[i][j] = L'\0';
-			i++;
-			j = 0;
+			a[soST][i] = L'\0';
+			soST++;
+			i = 0;
+			temp = fgetwc(file);
 		}
-		if (temp == L'\n' || temp == WEOF)
+		else if (temp == L'.')
 		{
-			a[i][j] = L'\0';
+			a[soST][i] = L'\0';
 			break;
 		}
 	}
+	temp = fgetwc(file);
+	if (temp == L'\n' || temp == WEOF)
+	{
+		return;
+	}
+	else if (temp == L'"')
+	{
+		fseek(file, 1, SEEK_CUR);
+	}
 }
 
-void layDuLieu(FILE* file, SV &a)
+void layDuLieu(FILE* file, SV &a, int &soST)
 {
 	getInfo(file, a.MSSV);
 	getInfo(file, a.HVT);
@@ -88,14 +98,24 @@ void layDuLieu(FILE* file, SV &a)
 	getInfo(file, a.NS);
 	getInfo(file, a.HA);
 	getInfo(file, a.MT);
-	getHobby(file, a.ST);
+	getHobby(file, a.ST, soST);
 }
 
-void taoFileHtm(SV a)
+void taoFileHtm(SV a, int soST)
 {
-	wchar_t* ten = a.MSSV;
-
-	FILE* f = _wfopen(L"WEBSITE\\sinhvien.htm", L"w, ccs=UTF-8");
+	wchar_t ten[30];
+	int i, j;
+	for (i = 0; a.MSSV[i] != L'\0'; i++)
+	{
+		ten[i] = a.MSSV[i];
+	}
+	wchar_t temp[] = { L'.', L'h', L't', L'm' };
+	for (j = 0; j < 4; j++)
+	{
+		ten[i + j] = temp[j];
+	}
+	ten[i + j] = L'\0';
+	FILE* f = _wfopen(ten, L"w, ccs=UTF-8");
 	if (f != NULL)
 	{
 		fwprintf(f, L"<!DOCTYPE html PUBLIC \" -//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">\n");
@@ -145,6 +165,7 @@ void taoFileHtm(SV a)
 		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>Họ và tên: %ls</li>\n", a.HVT);
 		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>MSSV: %ls</li>\n", a.MSSV);
 		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>Sinh viên khoa %ls</li>\n", a.KHOA);
+		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>Khóa tuyển: %d</li>\n", a.KHOAS);
 		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>Ngày sinh: %ls</li>\n", a.NS);
 		fwprintf(f, L"\t\t\t\t\t\t\t\t<li>Email: %ls</li>\n", a.MAIL);
 		fwprintf(f, L"\t\t\t\t\t\t\t</ul>\n");
@@ -152,7 +173,7 @@ void taoFileHtm(SV a)
 		fwprintf(f, L"\t\t\t\t\t\t<div class=\"InfoGroup\">Sở thích</div>\n");
 		fwprintf(f, L"\t\t\t\t\t\t<div>\n");
 		fwprintf(f, L"\t\t\t\t\t\t\t<ul class=\"TextInList\">\n");
-		for (int i = 0; i < a.soST; i++)
+		for (int i = 0; i <= soST; i++)
 		{
 			fwprintf(f, L"\t\t\t\t\t\t\t\t<li>%ls</li>\n", *(a.ST + i));
 		}
@@ -186,7 +207,7 @@ void taoFileHtm(SV a)
 	}
 	else
 	{
-		wprintf(L"Không thể tạo file html!\n");
+		wprintf(L"Không thể tạo file %ls!\n", ten);
 	}
 }
 
@@ -194,21 +215,33 @@ void wmain(int argc, wchar_t* argv[])
 {
 	_setmode(_fileno(stdout), _O_U16TEXT);
 	_setmode(_fileno(stdin), _O_U16TEXT);
-	SV a;
+	SV a[100];
+	int soST;
 	int dem = 0;
 	FILE* f = _wfopen(L"thongtin.csv", L"r,ccs=UTF-8");
 	if (f != NULL)
 	{
+		while (!feof(f))
+		{
+			wchar_t temp = fgetwc(f);
+			if (temp == L'\n')
+			{
+				dem++;
+			}
+		}
 		fseek(f, 3, SEEK_SET);
-		layDuLieu(f, a);
-		//FILE* file = _wfopen(L"chep.txt", L"w,ccs=UTF-8");
-		//fwprintf(file, L"%ls %ls %ls %d", a.MSSV, a.HVT, a.KHOA, a.KHOAS);
-		//fclose(file);
-		taoFileHtm(a);
+		for (int i = 0; i < dem; i++)
+		{
+			wprintf(L"Sinh viên thứ %d: ", i+1);
+			layDuLieu(f, *(a + i), soST);
+			taoFileHtm(*(a + i), soST);
+			int vitri = ftell(f);
+			wprintf(L"Kết thúc sinh viên %d. Vị trí con trỏ file: %d\n", i+1,vitri);
+		}
+		fclose(f);
 	}
 	else
 	{
 		wprintf(L"Không thể mở file!\n");
 	}
-	fclose(f);
 }
