@@ -26,15 +26,19 @@ void getInfo(FILE *file, wchar_t a[])
 	{
 		temp = fgetwc(file);
 	}
-	while (1)
+	while (temp != L'"')
 	{
-		if (temp != L','&&temp != L'"')
+		if (temp != L',')
 		{
 			a[i] = temp;
 			i++;
 			temp = fgetwc(file);
 		}
 		else break;
+	}
+	if (temp == L'"')
+	{
+		temp = fgetwc(file);
 	}
 	a[i] = L'\0';
 }
@@ -45,13 +49,17 @@ void laySo(FILE* file, int &a)
 	if (temp == L'"')
 	{
 		fwscanf_s(file, L"%d", &a);
-		fseek(file, 1, SEEK_CUR);
+		temp = fgetwc(file);
 	}
 	else
 	{
 		fseek(file, -1, SEEK_CUR);
 		fwscanf_s(file, L"%d", &a);
-		fseek(file, 1, SEEK_CUR);
+		temp = fgetwc(file);
+	}
+	if (temp == L'"')
+	{
+		temp = fgetwc(file);
 	}
 }
 
@@ -64,7 +72,7 @@ void getHobby(FILE* file, wchar_t a[10][100], int &soST)
 	{
 		temp = fgetwc(file);
 	}
-	while (temp != L'\n')
+	while (temp != L'"')
 	{
 		if (temp != L'"'&&temp != L';'&&temp != L'.')
 		{
@@ -87,6 +95,7 @@ void getHobby(FILE* file, wchar_t a[10][100], int &soST)
 			{
 				temp = fgetwc(file);
 			}
+			break;
 		}
 	}
 }
@@ -102,6 +111,11 @@ void layDuLieu(FILE* file, SV &a, int &soST)
 	getInfo(file, a.HA);
 	getInfo(file, a.MT);
 	getHobby(file, a.ST, soST);
+}
+
+void optional()
+{
+
 }
 
 void taoFileHtm(SV a, int soST)
@@ -220,7 +234,7 @@ void wmain(int argc, wchar_t* argv[])
 	_setmode(_fileno(stdin), _O_U16TEXT);
 	SV a[100];
 	int soST;
-	int dem = 0;
+	int soSV = 0;
 	FILE* f = _wfopen(L"thongtin.csv", L"r,ccs=UTF-8");
 	if (f != NULL)
 	{
@@ -229,17 +243,17 @@ void wmain(int argc, wchar_t* argv[])
 			wchar_t temp = fgetwc(f);
 			if (temp == L'\n')
 			{
-				dem++;
+				soSV++;
 			}
 		}
 		fseek(f, 3, SEEK_SET);
-		for (int i = 0; i < dem; i++)
+		for (int i = 0; i < soSV; i++)
 		{
-			wprintf(L"Sinh viên thứ %d: ", i+1);
+			wprintf(L"Sinh viên thứ %d: ", i + 1);
 			layDuLieu(f, *(a + i), soST);
 			taoFileHtm(*(a + i), soST);
 			int vitri = ftell(f);
-			wprintf(L"Kết thúc sinh viên %d. Vị trí con trỏ file: %d\n", i+1,vitri);
+			wprintf(L"Kết thúc sinh viên %d. Vị trí con trỏ file: %d\n", i + 1, vitri);
 		}
 		fclose(f);
 	}
