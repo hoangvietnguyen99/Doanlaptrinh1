@@ -22,6 +22,10 @@ void getInfo(FILE *file, wchar_t a[])
 {
 	wchar_t temp = fgetwc(file);
 	int i = 0;
+	if (temp == L'"')
+	{
+		temp = fgetwc(file);
+	}
 	while (1)
 	{
 		if (temp != L','&&temp != L'"')
@@ -53,38 +57,37 @@ void laySo(FILE* file, int &a)
 
 void getHobby(FILE* file, wchar_t a[10][100], int &soST)
 {
-	wchar_t temp = fgetwc(file);
 	soST = 0;
-	int i = 0;
-	while (1)
+	int j = 0;
+	wchar_t temp = fgetwc(file);
+	if (temp == L'"')
 	{
-		if (temp != L'"'&&temp != L'\n'&&temp != L';'&&temp != L'.'&&temp != WEOF)
+		temp = fgetwc(file);
+	}
+	while (temp != L'\n')
+	{
+		if (temp != L'"'&&temp != L';'&&temp != L'.')
 		{
-			a[soST][i] = temp;
-			i++;
+			a[soST][j] = temp;
+			j++;
 			temp = fgetwc(file);
 		}
 		else if (temp == L';')
 		{
-			a[soST][i] = L'\0';
+			a[soST][j] = L'\0';
 			soST++;
-			i = 0;
+			j = 0;
 			temp = fgetwc(file);
 		}
 		else if (temp == L'.')
 		{
-			a[soST][i] = L'\0';
-			break;
+			a[soST][j] = L'\0';
+			temp = fgetwc(file);
+			if (temp == L'"')
+			{
+				temp = fgetwc(file);
+			}
 		}
-	}
-	temp = fgetwc(file);
-	if (temp == L'\n' || temp == WEOF)
-	{
-		return;
-	}
-	else if (temp == L'"')
-	{
-		fseek(file, 1, SEEK_CUR);
 	}
 }
 
